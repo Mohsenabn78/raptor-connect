@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         wifiDirectManager = WifiDirectManager(this)
         wifiDirectManager.registerReceiver()
+        wifiDirectManager.discoverPeers(this@MainActivity)
 
         setContent {
             RaptorConnectTheme {
@@ -39,10 +40,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
 
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(5000)
-            wifiDirectManager.discoverPeers()
-        }
     }
 
     override fun onDestroy() {

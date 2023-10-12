@@ -1,16 +1,21 @@
 package com.mohsen.raptorconnect.data.connection
 
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.IntentFilter
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Looper
 import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
+import com.mohsen.raptorconnect.isLocationPermissionsGranted
+import com.mohsen.raptorconnect.requestLocationPermissions
 
 class WifiDirectManager(private val context: Context) {
 
@@ -41,29 +46,45 @@ class WifiDirectManager(private val context: Context) {
         context.unregisterReceiver(receiver)
     }
 
-    fun discoverPeers() {
-        wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d("WifiDirect", "Discovery initiated")
-            }
+    @SuppressLint("MissingPermission")
+    fun discoverPeers(context: Context) {
+        if (isLocationPermissionsGranted(context)) {
+            wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    Log.d("TAG", "Discovery initiated")
+                    wifiP2pManager.requestPeers(channel) { peers: WifiP2pDeviceList ->
+                        val deviceList = peers.deviceList.toList()
+                        deviceList.forEach {
+                            Log.e("TAG", "onReceive: ${it.deviceName}" )
+                        }
+                    }
+                }
 
-            override fun onFailure(reason: Int) {
-                Log.e("WifiDirect", "Discovery failed. Reason: $reason")
-            }
-        })
+                override fun onFailure(reason: Int) {
+                    Log.e("TAG", "Discovery failed. Reason: $reason")
+                }
+            })
+        } else {
+            requestLocationPermissions(context)
+        }
     }
 
-    fun connect(device: WifiP2pDevice) {
-        val config = WifiP2pConfig()
-        config.deviceAddress = device.deviceAddress
-        wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d("WifiDirect", "Connection initiated to ${device.deviceName}")
-            }
+    @SuppressLint("MissingPermission")
+    fun connect(device: WifiP2pDevice, context: Context) {
+        if (isLocationPermissionsGranted(context)) {
+            val config = WifiP2pConfig()
+            config.deviceAddress = device.deviceAddress
+            wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    Log.d("TAG", "Connection initiated to ${device.deviceName}")
+                }
 
-            override fun onFailure(reason: Int) {
-                Log.e("WifiDirect", "Connection failed. Reason: $reason")
-            }
-        })
+                override fun onFailure(reason: Int) {
+                    Log.e("TAG", "Connection failed. Reason: $reason")
+                }
+            })
+        } else {
+            requestLocationPermissions(context)
+        }
     }
 }
